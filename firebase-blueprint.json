@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with targets, analytics, XP, and learning path.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "targetBand": { "type": "number" },
+        "currentBand": { "type": "number" },
+        "xp": { "type": "integer" },
+        "streak": { "type": "integer" },
+        "lastPracticeDate": { "type": "string" },
+        "totalHours": { "type": "number" },
+        "sessionsCompleted": { "type": "integer" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "SpeakingSession": {
+      "title": "Speaking Session",
+      "description": "A student's practice session (mock test or casual practice) with detailed breakdowns.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "sessionType": { "type": "string", "enum": ["mock_test", "practice"] },
+        "agent": { "type": "string", "enum": ["examiner", "partner"] },
+        "topic": { "type": "string" },
+        "promptQuestion": { "type": "string" },
+        "transcript": { "type": "string" },
+        "overallBand": { "type": "number" },
+        "fluencyBand": { "type": "number" },
+        "vocabularyBand": { "type": "number" },
+        "grammarBand": { "type": "number" },
+        "pronunciationBand": { "type": "number" },
+        "analysis": { "type": "object" },
+        "fillerWordsCount": { "type": "integer" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "overallBand"]
+    },
+    "PDFQuestion": {
+      "title": "PDF Question",
+      "description": "IELTS speaking topic questions extracted from kiran makkar guessworks.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "topic": { "type": "string" },
+        "partType": { "type": "integer", "enum": [1, 2, 3] },
+        "question": { "type": "string" },
+        "cueCardSubQuestions": { "type": "array" },
+        "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+        "category": { "type": "string" },
+        "keywords": { "type": "array" }
+      },
+      "required": ["id", "topic", "partType", "question"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Store IELTS user profiles and learning progress."
+    },
+    "users/{userId}/sessions/{sessionId}": {
+      "schema": "SpeakingSession",
+      "description": "Speaking practice and mock test history."
+    },
+    "pdfQuestions/{questionId}": {
+      "schema": "PDFQuestion",
+      "description": "Database of extracted IELTS Cue Cards and questions."
+    }
+  }
+}

@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable global helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for User profile shape
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128
+          && data.email is string && data.email.size() <= 128
+          && data.name is string && data.name.size() <= 128
+          && (!data.keys().hasAny(['targetBand']) || data.targetBand is number)
+          && (!data.keys().hasAny(['currentBand']) || data.currentBand is number)
+          && (!data.keys().hasAny(['xp']) || data.xp is int)
+          && (!data.keys().hasAny(['streak']) || data.streak is int)
+          && (!data.keys().hasAny(['sessionsCompleted']) || data.sessionsCompleted is int)
+          && (!data.keys().hasAny(['totalHours']) || data.totalHours is number)
+          && (!data.keys().hasAny(['lastPracticeDate']) || (data.lastPracticeDate is string && data.lastPracticeDate.size() <= 64))
+          && (!data.keys().hasAny(['createdAt']) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    // Validation for SpeakingSession
+    function isValidSpeakingSession(data) {
+      return (!data.keys().hasAny(['sessionType']) || (data.sessionType is string && data.sessionType.size() <= 64))
+          && (!data.keys().hasAny(['agent']) || (data.agent is string && data.agent.size() <= 64))
+          && (!data.keys().hasAny(['topic']) || (data.topic is string && data.topic.size() <= 1000))
+          && (!data.keys().hasAny(['promptQuestion']) || (data.promptQuestion is string && data.promptQuestion.size() <= 5000))
+          && (!data.keys().hasAny(['transcript']) || (data.transcript is string && data.transcript.size() <= 100000))
+          && (!data.keys().hasAny(['overallBand']) || data.overallBand is number)
+          && (!data.keys().hasAny(['fluencyBand']) || data.fluencyBand is number)
+          && (!data.keys().hasAny(['vocabularyBand']) || data.vocabularyBand is number)
+          && (!data.keys().hasAny(['grammarBand']) || data.grammarBand is number)
+          && (!data.keys().hasAny(['pronunciationBand']) || data.pronunciationBand is number)
+          && (!data.keys().hasAny(['fillerWordsCount']) || data.fillerWordsCount is int)
+          && (!data.keys().hasAny(['createdAt']) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    // Rules for primary collections
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming());
+      
+      match /sessions/{sessionId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidSpeakingSession(incoming());
+        allow update: if isOwner(userId) && isValidSpeakingSession(incoming());
+      }
+    }
+
+    match /pdfQuestions/{questionId} {
+      // Allowed for both authenticated and unauthenticated guests to read layout fallback
+      allow get, list: if true;
+      allow write: if isSignedIn();
+    }
+  }
+}
